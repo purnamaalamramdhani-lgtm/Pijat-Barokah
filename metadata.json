@@ -1,0 +1,8 @@
+{
+  "name": "Pijat Barokah Serang",
+  "description": "Layanan pijat panggilan profesional ke rumah, kosan, dan hotel dengan sistem reservasi instan yang mudah digunakan.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
