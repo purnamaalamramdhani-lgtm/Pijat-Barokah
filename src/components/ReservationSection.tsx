@@ -2,6 +2,7 @@ import {
   AlertCircle,
   Calendar,
   Check,
+  Loader2,
   Copy,
   MapPin,
   MessageCircle,
@@ -23,6 +24,7 @@ import {
   PropertyType,
   Reservation,
 } from '../types/booking';
+import { submitReservation } from '../lib/netlifyForms';
 
 interface ReservationSectionProps {
   selectedServiceId: string;
@@ -99,6 +101,7 @@ export function ReservationSection({
   const [formError, setFormError] = useState<string | null>(null);
   const [confirmedBooking, setConfirmedBooking] = useState<Reservation | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const selectedService = useMemo(
     () => SERVICES.find((s) => s.id === selectedServiceId) || SERVICES[0],
@@ -132,8 +135,9 @@ export function ReservationSection({
   const transportFee = selectedArea.transportFee;
   const totalPrice = servicePrice + transportFee;
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     setFormError(null);
 
     const trimmedName = customerName.trim();
@@ -189,6 +193,18 @@ export function ReservationSection({
       transportFee,
       totalPrice,
     };
+
+    setIsSubmitting(true);
+    try {
+      await submitReservation(newReservation);
+    } catch {
+      setFormError(
+        `Reservasi gagal terkirim. Periksa koneksi internet Anda lalu coba lagi, atau hubungi WhatsApp ${CONTACT_PHONE_DISPLAY}.`
+      );
+      return;
+    } finally {
+      setIsSubmitting(false);
+    }
 
     onCreateReservation(newReservation);
     setConfirmedBooking(newReservation);
@@ -735,9 +751,18 @@ export function ReservationSection({
 
               <button
                 type="submit"
-                className="w-full py-3.5 px-6 text-sm font-medium text-white bg-[#1B4332] hover:bg-[#143326] rounded-lg transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4332] focus-visible:ring-offset-2"
+                disabled={isSubmitting}
+                aria-busy={isSubmitting}
+                className="w-full inline-flex items-center justify-center gap-2 py-3.5 px-6 text-sm font-medium text-white bg-[#1B4332] hover:bg-[#143326] disabled:opacity-70 disabled:cursor-wait rounded-lg transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4332] focus-visible:ring-offset-2"
               >
-                Konfirmasi Reservasi
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                    <span>Mengirim Reservasi…</span>
+                  </>
+                ) : (
+                  'Konfirmasi Reservasi'
+                )}
               </button>
 
               <div className="flex items-start gap-2 text-xs text-[#5A625D]">

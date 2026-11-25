@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="robots" content="noindex" />
+    <title>Netlify Forms</title>
+  </head>
+  <body>
+    <!--
+      Static copies of the forms rendered by React. Netlify detects forms by
+      scanning built HTML, so these hidden skeletons register the form names and
+      field names. Field names must exactly match what the app submits.
+    -->
+    <form name="reservasi" data-netlify="true" netlify-honeypot="bot-field" hidden>
+      <input type="hidden" name="form-name" value="reservasi" />
+      <input type="hidden" name="subject" />
+      <input type="text" name="nama" />
+      <input type="text" name="kode_reservasi" />
+      <input type="tel" name="whatsapp" />
+      <input type="text" name="layanan" />
+      <input type="text" name="durasi" />
+      <input type="text" name="tanggal" />
+      <input type="text" name="jam" />
+      <input type="text" name="tipe_lokasi" />
+      <input type="text" name="area" />
+      <textarea name="alamat"></textarea>
+      <input type="text" name="catatan" />
+      <input type="text" name="metode_pembayaran" />
+      <input type="text" name="harga_layanan" />
+      <input type="text" name="biaya_transport" />
+      <input type="text" name="total" />
+      <input name="bot-field" />
+    </form>
+
+    <form name="perubahan-reservasi" data-netlify="true" netlify-honeypot="bot-field" hidden>
+      <input type="hidden" name="form-name" value="perubahan-reservasi" />
+      <input type="hidden" name="subject" />
+      <input type="text" name="nama" />
+      <input type="text" name="kode_reservasi" />
+      <input type="tel" name="whatsapp" />
+      <input type="text" name="jenis_perubahan" />
+      <input type="text" name="layanan" />
+      <input type="text" name="jadwal_lama" />
+      <textarea name="jadwal_baru"></textarea>
+      <input name="bot-field" />
+    </form>
+  </body>
+</html>
