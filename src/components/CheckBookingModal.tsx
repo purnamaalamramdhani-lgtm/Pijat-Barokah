@@ -1,4 +1,4 @@
-import { Calendar, CheckCircle2, Clock, Search, X, XCircle } from 'lucide-react';
+import { AlertCircle, Calendar, CheckCircle2, Clock, Search, X, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import { formatIDR, TIME_SLOTS } from '../data/spaData';
 import { Reservation } from '../types/booking';
@@ -7,8 +7,8 @@ interface CheckBookingModalProps {
   isOpen: boolean;
   onClose: () => void;
   reservations: Reservation[];
-  onReschedule: (bookingCode: string, newDate: string, newTime: string) => void;
-  onCancelReservation: (bookingCode: string) => void;
+  onReschedule: (bookingCode: string, newDate: string, newTime: string) => Promise<void>;
+  onCancelReservation: (bookingCode: string) => Promise<void>;
 }
 
 export function CheckBookingModal({
@@ -22,6 +22,8 @@ export function CheckBookingModal({
   const [editingCode, setEditingCode] = useState<string | null>(null);
   const [newDate, setNewDate] = useState('');
   const [newTime, setNewTime] = useState('');
+  const [pendingCode, setPendingCode] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<{ code: string; message: string } | null>(null);
 
   if (!isOpen) return null;
 
@@ -36,15 +38,41 @@ export function CheckBookingModal({
     : reservations;
 
   const startReschedule = (reservation: Reservation) => {
+    setActionError(null);
     setEditingCode(reservation.bookingCode);
     setNewDate(reservation.date);
     setNewTime(reservation.timeSlot);
   };
 
-  const confirmReschedule = (bookingCode: string) => {
+  const runAction = async (bookingCode: string, action: () => Promise<void>) => {
+    if (pendingCode) return;
+    setActionError(null);
+    setPendingCode(bookingCode);
+    try {
+      await action();
+      return true;
+    } catch {
+      setActionError({
+        code: bookingCode,
+        message: 'Perubahan gagal terkirim ke admin. Periksa koneksi internet Anda lalu coba lagi.',
+      });
+      return false;
+    } finally {
+      setPendingCode(null);
+    }
+  };
+
+  const confirmReschedule = async (bookingCode: string) => {
     if (!newDate || !newTime) return;
-    onReschedule(bookingCode, newDate, newTime);
-    setEditingCode(null);
+    const ok = await runAction(bookingCode, () => onReschedule(bookingCode, newDate, newTime));
+    if (ok) setEditingCode(null);
+  };
+
+  const confirmCancel = (bookingCode: string) => {
+    if (!window.confirm('Batalkan reservasi ini? Admin akan menerima pemberitahuan pembatalan.')) {
+      return;
+    }
+    void runAction(bookingCode, () => onCancelReservation(bookingCode));
   };
 
   return (
@@ -110,6 +138,9 @@ export function CheckBookingModal({
             displayedReservations.map((res) => {
               const isCancelled = res.status === 'Dibatalkan';
               const isEditing = editingCode === res.bookingCode;
+              const isPending = pendingCode === res.bookingCode;
+              const errorMessage =
+                actionError?.code === res.bookingCode ? actionError.message : null;
 
               return (
                 <article
@@ -197,13 +228,15 @@ export function CheckBookingModal({
                         <button
                           type="button"
                           onClick={() => confirmReschedule(res.bookingCode)}
-                          className="px-3 py-1.5 text-xs font-medium bg-[#1B4332] text-white rounded-md cursor-pointer"
+                          disabled={isPending}
+                          className="px-3 py-1.5 text-xs font-medium bg-[#1B4332] text-white rounded-md cursor-pointer disabled:opacity-70 disabled:cursor-wait"
                         >
-                          Simpan Perubahan
+                          {isPending ? 'Menyimpan…' : 'Simpan Perubahan'}
                         </button>
                         <button
                           type="button"
                           onClick={() => setEditingCode(null)}
+                          disabled={isPending}
                           className="px-3 py-1.5 text-xs font-medium bg-white border border-[#E3E6E2] text-[#5A625D] rounded-md cursor-pointer"
                         >
                           Batal
@@ -212,21 +245,33 @@ export function CheckBookingModal({
                     </div>
                   )}
 
+                  {errorMessage && (
+                    <div
+                      role="alert"
+                      className="flex items-start gap-2 p-3 text-xs text-[#8C2D19] bg-[#FDF2F0] border border-[#E5B8AE] rounded-lg"
+                    >
+                      <AlertCircle className="w-4 h-4 shrink-0" aria-hidden="true" />
+                      <span>{errorMessage}</span>
+                    </div>
+                  )}
+
                   {!isCancelled && !isEditing && (
                     <div className="pt-3 border-t border-[#E3E6E2] flex items-center justify-end gap-3">
                       <button
                         type="button"
                         onClick={() => startReschedule(res)}
+                        disabled={isPending}
                         className="px-3 py-1.5 text-xs font-medium bg-[#F7F8F6] hover:bg-[#EDF3EF] text-[#1A1D1B] border border-[#E3E6E2] rounded-md transition-colors cursor-pointer"
                       >
                         Ubah Jadwal
                       </button>
                       <button
                         type="button"
-                        onClick={() => onCancelReservation(res.bookingCode)}
-                        className="px-3 py-1.5 text-xs font-medium text-[#8C2D19] hover:bg-[#FDF2F0] border border-[#E5B8AE] rounded-md transition-colors cursor-pointer"
+                        onClick={() => confirmCancel(res.bookingCode)}
+                        disabled={isPending}
+                        className="px-3 py-1.5 text-xs font-medium text-[#8C2D19] hover:bg-[#FDF2F0] border border-[#E5B8AE] rounded-md transition-colors cursor-pointer disabled:opacity-70 disabled:cursor-wait"
                       >
-                        Batalkan
+                        {isPending ? 'Memproses…' : 'Batalkan'}
                       </button>
                     </div>
                   )}

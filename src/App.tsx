@@ -12,6 +12,7 @@ import { ReservationSection } from './components/ReservationSection';
 import { ServicesSection } from './components/ServicesSection';
 import { TherapistsAndTrustSection } from './components/TherapistsAndTrustSection';
 import { SERVICES } from './data/spaData';
+import { submitReservationChange } from './lib/netlifyForms';
 import { Reservation, ServiceItem } from './types/booking';
 
 const STORAGE_KEY = 'pijat_barokah_reservations_v1';
@@ -52,7 +53,10 @@ export default function App() {
     setReservations((prev) => [newReservation, ...prev]);
   };
 
-  const handleReschedule = (bookingCode: string, newDate: string, newTime: string) => {
+  const handleReschedule = async (bookingCode: string, newDate: string, newTime: string) => {
+    const target = reservations.find((r) => r.bookingCode === bookingCode);
+    if (!target) return;
+    await submitReservationChange(target, { type: 'reschedule', newDate, newTime });
     setReservations((prev) =>
       prev.map((item) =>
         item.bookingCode === bookingCode
@@ -62,7 +66,10 @@ export default function App() {
     );
   };
 
-  const handleCancelReservation = (bookingCode: string) => {
+  const handleCancelReservation = async (bookingCode: string) => {
+    const target = reservations.find((r) => r.bookingCode === bookingCode);
+    if (!target) return;
+    await submitReservationChange(target, { type: 'cancel' });
     setReservations((prev) =>
       prev.map((item) =>
         item.bookingCode === bookingCode ? { ...item, status: 'Dibatalkan' } : item
